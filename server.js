@@ -3,7 +3,6 @@ const { TableClient, AzureNamedKeyCredential } = require('@azure/data-tables');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configuración de Azure Table Storage
 const account = "clustervmstorageapi";
 const accountKey = "gaz3Ju4561X1T34OnB9XMEC/l1zX/rQmuE6NgxYMLXpsSYPocx1kTK+yPbWOIAB/kjQyq5iGsH2h+ASt2FvAWw==";
 const tableName = "metrics";
