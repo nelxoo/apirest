@@ -1,5 +1,6 @@
 const express = require('express');
 const { TableClient, AzureNamedKeyCredential } = require('@azure/data-tables');
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -13,6 +14,12 @@ const client = new TableClient(`https://${account}.table.core.windows.net`, tabl
 
 app.use(express.json());
 
+// Endpoint principal
+app.get('/', (req, res) => {
+    res.send('✅ API de monitoreo en línea (con almacenamiento)');
+});
+
+// Endpoint para recibir métricas
 app.post('/api/metrics', async (req, res) => {
     const clientData = req.body;
     const serverTimestamp = new Date().toISOString();
@@ -21,17 +28,6 @@ app.post('/api/metrics', async (req, res) => {
         return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
-    const log = {
-        hostname: clientData.hostname,
-        clientTimestamp: clientData.clientTimestamp,
-        serverTimestamp: serverTimestamp,
-        cpu: clientData.cpu,
-        memoryFreeKB: clientData.memoryFreeKB
-    };
-
-    console.log("📥 Datos recibidos:", log);
-
-    // Guardar en Azure Table Storage
     const entity = {
         partitionKey: "metrics",
         rowKey: `${clientData.hostname}-${Date.now()}`,
@@ -44,16 +40,12 @@ app.post('/api/metrics', async (req, res) => {
 
     try {
         await client.createEntity(entity);
+        console.log("📥 Datos guardados en Table Storage:", entity);
+        res.status(200).json({ status: "ok", serverTimestamp: serverTimestamp });
     } catch (err) {
         console.error("❌ Error al guardar en Table Storage:", err.message);
-        return res.status(500).json({ error: "Error al guardar en almacenamiento" });
+        res.status(500).json({ error: "Error al guardar en almacenamiento" });
     }
-
-    res.status(200).json({ status: "ok", serverTimestamp: serverTimestamp });
-});
-
-app.get('/', (req, res) => {
-    res.send('✅ API de monitoreo en línea (con almacenamiento)');
 });
 
 app.listen(port, () => {
