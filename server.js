@@ -1,10 +1,9 @@
 const express = require('express');
 const { TableClient, AzureNamedKeyCredential } = require('@azure/data-tables');
-
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configuración de Table Storage
+// Configuración de Azure Table Storage
 const account = "clustervmstorageapi";
 const accountKey = "gaz3Ju4561X1T34OnB9XMEC/l1zX/rQmuE6NgxYMLXpsSYPocx1kTK+yPbWOIAB/kjQyq5iGsH2h+ASt2FvAWw==";
 const tableName = "metrics";
@@ -14,12 +13,10 @@ const client = new TableClient(`https://${account}.table.core.windows.net`, tabl
 
 app.use(express.json());
 
-// Endpoint principal
 app.get('/', (req, res) => {
     res.send('✅ API de monitoreo en línea (con almacenamiento)');
 });
 
-// Endpoint para recibir métricas
 app.post('/api/metrics', async (req, res) => {
     const clientData = req.body;
     const serverTimestamp = new Date().toISOString();
@@ -40,10 +37,10 @@ app.post('/api/metrics', async (req, res) => {
 
     try {
         await client.createEntity(entity);
-        console.log("📥 Datos guardados en Table Storage:", entity);
+        console.log("✅ Guardado en Storage:", entity);
         res.status(200).json({ status: "ok", serverTimestamp: serverTimestamp });
     } catch (err) {
-        console.error("❌ Error al guardar en Table Storage:", err.message);
+        console.error("❌ Error al guardar en Storage:", err.message);
         res.status(500).json({ error: "Error al guardar en almacenamiento" });
     }
 });
