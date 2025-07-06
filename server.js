@@ -1,10 +1,19 @@
 const express = require('express');
+const { TableClient, AzureNamedKeyCredential } = require('@azure/data-tables');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Configuración de Table Storage
+const account = "clustervmstorageapi";
+const accountKey = "gaz3Ju4561X1T34OnB9XMEC/l1zX/rQmuE6NgxYMLXpsSYPocx1kTK+yPbWOIAB/kjQyq5iGsH2h+ASt2FvAWw==";
+const tableName = "metrics";
+
+const credential = new AzureNamedKeyCredential(account, accountKey);
+const client = new TableClient(`https://${account}.table.core.windows.net`, tableName, credential);
+
 app.use(express.json());
 
-app.post('/api/metrics', (req, res) => {
+app.post('/api/metrics', async (req, res) => {
     const clientData = req.body;
     const serverTimestamp = new Date().toISOString();
 
@@ -22,11 +31,29 @@ app.post('/api/metrics', (req, res) => {
 
     console.log("📥 Datos recibidos:", log);
 
+    // Guardar en Azure Table Storage
+    const entity = {
+        partitionKey: "metrics",
+        rowKey: `${clientData.hostname}-${Date.now()}`,
+        hostname: clientData.hostname,
+        cpu: clientData.cpu,
+        memoryFreeKB: clientData.memoryFreeKB,
+        clientTimestamp: clientData.clientTimestamp,
+        serverTimestamp: serverTimestamp
+    };
+
+    try {
+        await client.createEntity(entity);
+    } catch (err) {
+        console.error("❌ Error al guardar en Table Storage:", err.message);
+        return res.status(500).json({ error: "Error al guardar en almacenamiento" });
+    }
+
     res.status(200).json({ status: "ok", serverTimestamp: serverTimestamp });
 });
 
 app.get('/', (req, res) => {
-    res.send('✅ API de monitoreo en línea');
+    res.send('✅ API de monitoreo en línea (con almacenamiento)');
 });
 
 app.listen(port, () => {
